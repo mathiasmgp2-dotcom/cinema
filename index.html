@@ -28,7 +28,7 @@
       color: var(--text);
       -webkit-font-smoothing: antialiased;
       overflow-y: scroll;
-      padding-bottom: 70px;
+      padding-bottom: 90px; /* Increased to clear mobile nav */
     }
 
     button { font-family: inherit; cursor: pointer; }
@@ -40,7 +40,7 @@
     }
     .gate-box { background: var(--input-bg); border-radius: 16px; padding: 40px; width: 100%; max-width: 350px; text-align: center; }
     .app-logo { font-size: 32px; font-weight: 900; letter-spacing: -1px; margin-bottom: 20px; color: var(--blue); text-transform: uppercase;}
-    .ig-input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px; font-size: 14px; margin-bottom: 15px; color: var(--text); outline: none; }
+    .ig-input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px; font-size: 16px; margin-bottom: 15px; color: var(--text); outline: none; }
     .fake-pass { -webkit-text-security: disc; }
     .ig-btn { width: 100%; background: var(--blue); color: white; border: none; border-radius: 8px; padding: 14px; font-weight: 600; font-size: 14px; }
     #app { display: none; }
@@ -102,7 +102,7 @@
     .save-btn:hover { background: rgba(255,255,255,0.2); }
     .save-btn.saved { background: var(--blue); border-color: var(--blue); }
 
-    /* ─── HORIZONTAL SCROLLS (Cast, Similar) ─── */
+    /* ─── HORIZONTAL SCROLLS ─── */
     .h-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
     .h-scroll::-webkit-scrollbar { display: none; }
     .cast-card { flex: 0 0 100px; text-align: center; }
@@ -117,8 +117,16 @@
     #player-modal { position: fixed; inset: 0; background: var(--overlay); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
     .post-container { background: var(--nav-bg); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; max-width: 900px; width: 100%; max-height: 95vh; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
     .post-header { padding: 16px 20px; display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); align-items: center; }
-    .post-video { width: 100%; aspect-ratio: 16/9; background: #000; }
-    .post-video iframe { width: 100%; height: 100%; border: none; }
+    
+    .post-video { width: 100%; aspect-ratio: 16/9; background: #000; position: relative; }
+    .post-video iframe { width: 100%; height: 100%; border: none; display: none; }
+    
+    /* Play Placeholder Overlay */
+    .video-placeholder { position: absolute; inset: 0; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 5; }
+    .video-placeholder::after { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,0.4); }
+    .play-circle { width: 64px; height: 64px; background: rgba(229, 9, 20, 0.8); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: white; transition: transform 0.2s; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+    .video-placeholder:hover .play-circle { transform: scale(1.1); background: var(--blue); }
+
     .post-footer { padding: 20px; overflow-y: auto; }
     
     .source-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
@@ -138,13 +146,21 @@
     .modal-section-title { font-size: 14px; font-weight: 700; color: var(--text-muted); margin: 20px 0 10px; text-transform: uppercase; letter-spacing: 1px; }
 
     /* ─── BOTTOM NAV ─── */
-    .bottom-nav { display: none; position: fixed; bottom: 0; width: 100%; background: var(--glass); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--border); justify-content: space-around; padding: 12px 0; z-index: 100; }
+    .bottom-nav { display: none; position: fixed; bottom: 0; width: 100%; background: var(--glass); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--border); justify-content: space-around; padding: 12px 0; z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
     .icon-btn { background: transparent; border: none; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 4px; transition: color 0.2s; }
     .icon-btn:hover { color: var(--text); }
     
+    /* ─── MOBILE RESPONSIVE TWEAKS ─── */
     @media (max-width: 767px) {
       .bottom-nav { display: flex; }
       header .app-logo { font-size: 20px; }
+      
+      /* Force inputs to 16px to prevent iOS auto-zoom bug */
+      .search-wrap input, .input-group select { font-size: 16px !important; }
+      
+      /* Fullscreen Native App Modal for Mobile */
+      #player-modal { padding: 0; align-items: flex-end; }
+      .post-container { max-height: 100vh; height: 100%; border-radius: 0; border: none; }
       
       /* Mobile Search Overlay */
       .search-wrap { display: none; }
@@ -175,7 +191,12 @@
       <button style="background:none; border:none; color:var(--text-muted); font-size: 18px;" onclick="closePlayer()">✕</button>
     </div>
     
-    <div class="post-video"><iframe id="player-iframe" allowfullscreen></iframe></div>
+    <div class="post-video">
+      <div id="video-placeholder" class="video-placeholder" onclick="startPlayback()">
+        <div class="play-circle">▶</div>
+      </div>
+      <iframe id="player-iframe" allowfullscreen></iframe>
+    </div>
     
     <div class="post-footer">
       <div class="source-bar" id="source-bar"></div>
@@ -187,7 +208,7 @@
         <div class="input-group">
           <select id="tv-ep"></select>
         </div>
-        <button class="play-ep-btn" onclick="loadCurrentSource()">Play Episode</button>
+        <button class="play-ep-btn" onclick="startPlayback()">Play Episode</button>
       </div>
 
       <div class="modal-section-title" id="cast-title">Cast & Crew</div>
@@ -202,13 +223,11 @@
 <div id="app">
   <header>
     <div class="app-logo" style="margin-bottom:0;">MathFlix</div>
-    
     <form class="search-wrap" id="desktop-search" action="." onsubmit="return handleSearchSubmit(event)">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
       <input type="search" id="search-input" placeholder="Search..." autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="search">
       <button type="button" class="close-search" onclick="closeMobileSearch()">Cancel</button>
     </form>
-    
   </header>
 
   <div class="profile-tabs" id="tabs">
@@ -286,6 +305,7 @@ let isLoading = false;
 let currentItem = null; 
 let currentSeasons = []; 
 let searchTimeout = null;
+let isPlaying = false; // Tracks if the user actually clicked play
 
 const SOURCES = [
   { name: 'VSEmbed', movie: id => `https://vsembed.ru/embed/movie?tmdb=${id}`, tv: (id,s,e) => `https://vsembed.ru/embed/tv?tmdb=${id}&season=${s}&episode=${e}` },
@@ -309,7 +329,6 @@ function checkPass() {
 
 document.getElementById('gate-pass').addEventListener('keydown', e => { if (e.key === 'Enter') checkPass(); });
 
-// Bulletproof Fetch request
 async function tmdb(path, params = {}) {
   params.api_key = cfg.tmdbKey;
   params.language = 'en-US';
@@ -321,7 +340,7 @@ async function tmdb(path, params = {}) {
   } catch(e) { return null; }
 }
 
-// ─── MOBILE SEARCH TOGGLE & EVENT LISTENERS ─────────────────────────────────
+// ─── MOBILE SEARCH ──────────────────────────────────────────────────────────
 const searchForm = document.getElementById('desktop-search');
 const searchInput = document.getElementById('search-input');
 
@@ -358,12 +377,11 @@ searchInput.addEventListener('input', () => {
   searchTimeout = setTimeout(() => { executeSearch(false); }, 800);
 });
 
-// HARWIRED iOS SUBMIT FUNCTION
 window.handleSearchSubmit = function(e) {
-  if (e) e.preventDefault(); // Stop page reload
-  executeSearch(true);       // Force search immediately
-  searchInput.blur();        // Hide the iPhone keyboard
-  return false;              // Extra safety for iOS Safari
+  if (e) e.preventDefault(); 
+  executeSearch(true);       
+  searchInput.blur();        
+  return false;              
 };
 
 
@@ -498,7 +516,6 @@ function renderCards(items, containerId) {
   else el.insertAdjacentHTML('beforeend', html);
 }
 
-// ─── LIBRARY LOGIC ──────────────────────────────────────────────────────────
 function toggleSave(e, btn, dataStr) {
   e.stopPropagation(); 
   const item = JSON.parse(decodeURIComponent(dataStr));
@@ -522,7 +539,7 @@ function loadLibrary() {
   renderCards(resumeItems, 'continue-grid');
 }
 
-// ─── PREMIUM MODAL ──────────────────────────────────────────────────────────
+// ─── PREMIUM MODAL & PLAYER ENGINE ──────────────────────────────────────────
 function openPlayerFromEl(el) {
   const item = JSON.parse(decodeURIComponent(el.getAttribute('data-item')));
   openPlayer(item);
@@ -530,10 +547,22 @@ function openPlayerFromEl(el) {
 
 async function openPlayer(item) {
   currentItem = item;
+  isPlaying = false; // Reset play state
+  
   const isMovie = item.media_type === 'movies' || item.title;
   const typeStr = isMovie ? 'movie' : 'tv';
   
   document.getElementById('player-label').textContent = item.title || item.name;
+  
+  // RESET THE PLAYER UI
+  document.getElementById('player-iframe').style.display = 'none';
+  document.getElementById('player-iframe').src = '';
+  
+  const placeholder = document.getElementById('video-placeholder');
+  placeholder.style.display = 'flex';
+  const bgImage = item.backdrop_path ? `${IMG_BG}${item.backdrop_path}` : (item.poster_path ? `${IMG}${item.poster_path}` : '');
+  placeholder.style.backgroundImage = `url(${bgImage})`;
+
   document.getElementById('player-modal').style.display = 'flex';
   document.body.style.overflow = 'hidden';
   
@@ -558,9 +587,8 @@ async function openPlayer(item) {
       savedE = db.resume[item.id].e;
     }
     
-    // GUARANTEE HIGH LIMITS FOR LEAKED/UNLISTED SEASONS
     let maxSeason = currentSeasons.length > 0 ? Math.max(...currentSeasons.map(s => s.season_number)) : 1;
-    maxSeason = Math.max(maxSeason, 20); // Pad up to 20 just in case
+    maxSeason = Math.max(maxSeason, 20); 
     
     sSelect.innerHTML = Array.from({length: maxSeason}, (_, i) => i + 1)
       .map(s => `<option value="${s}">Season ${s}</option>`).join('');
@@ -571,7 +599,7 @@ async function openPlayer(item) {
       const sNum = parseInt(sSelect.value) || 1;
       const seasonData = currentSeasons.find(s => s.season_number === sNum);
       let epCount = seasonData ? seasonData.episode_count : 0;
-      epCount = Math.max(epCount, 100); // Pad up to 100 just in case
+      epCount = Math.max(epCount, 100); 
       
       eSelect.innerHTML = Array.from({length: epCount}, (_, i) => i + 1)
         .map(ep => `<option value="${ep}">Episode ${ep}</option>`).join('');
@@ -579,7 +607,14 @@ async function openPlayer(item) {
     
     buildEpisodes();
     if([...eSelect.options].some(o => o.value == savedE)) eSelect.value = savedE;
-    sSelect.onchange = () => { buildEpisodes(); };
+    
+    sSelect.onchange = () => { 
+      buildEpisodes(); 
+      if(isPlaying) loadCurrentSource(0); // Only auto-play if they were already watching
+    };
+    eSelect.onchange = () => {
+      if(isPlaying) loadCurrentSource(0);
+    };
     
   } else {
     tvCtrl.classList.remove('active');
@@ -611,16 +646,39 @@ async function openPlayer(item) {
     }).join('');
   } else { document.getElementById('similar-title').style.display = 'none'; simEl.innerHTML = ''; }
 
-  loadCurrentSource(0);
+  // We explicitly DO NOT call loadCurrentSource() here anymore.
+  // The user must click the placeholder or "Play" button.
+}
+
+function startPlayback() {
+  isPlaying = true;
+  document.getElementById('video-placeholder').style.display = 'none';
+  document.getElementById('player-iframe').style.display = 'block';
+  
+  // Find which source is active
+  let activeIdx = 0;
+  document.querySelectorAll('.source-btn:not(.trailer-btn)').forEach((btn, idx) => {
+    if(btn.classList.contains('active')) activeIdx = idx;
+  });
+  
+  loadCurrentSource(activeIdx);
 }
 
 function setSource(idx, btn) {
   document.querySelectorAll('.source-btn:not(.trailer-btn)').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  loadCurrentSource(idx);
+  
+  if (isPlaying) {
+    loadCurrentSource(idx);
+  } else {
+    startPlayback();
+  }
 }
 
 function playTrailer(key) {
+  isPlaying = true;
+  document.getElementById('video-placeholder').style.display = 'none';
+  document.getElementById('player-iframe').style.display = 'block';
   document.getElementById('player-iframe').src = `https://www.youtube.com/embed/${key}?autoplay=1`;
 }
 
@@ -637,6 +695,7 @@ function loadCurrentSource(sourceIdx = 0) {
   
   iframe.src = isMovie ? src.movie(currentItem.id) : src.tv(currentItem.id, s, e);
   
+  // ONLY NOW DO WE SAVE TO HISTORY
   if(!db.history.includes(currentItem.id)) db.history.push(currentItem.id);
   if(!isMovie) db.resume[currentItem.id] = { item: currentItem, s, e, time: Date.now() };
   else db.resume[currentItem.id] = { item: currentItem, time: Date.now() };
@@ -648,6 +707,7 @@ function closePlayer() {
   document.getElementById('player-modal').style.display = 'none';
   document.getElementById('player-iframe').src = '';
   document.body.style.overflow = '';
+  
   if(currentTab === 'library') loadLibrary(); 
   else reloadFeed(); 
 }
