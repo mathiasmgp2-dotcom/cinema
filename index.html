@@ -92,6 +92,12 @@
       transition: border-color 0.2s;
     }
     .ig-input:focus { border-color: var(--text-muted); }
+    
+    /* Anti-Password Manager Hack */
+    .fake-pass {
+      -webkit-text-security: disc;
+    }
+
     .ig-btn {
       width: 100%;
       background: var(--blue);
@@ -140,7 +146,7 @@
       transform: translateY(-50%);
       color: var(--text-muted);
     }
-    .close-search { display: none; } /* Hidden on desktop */
+    .close-search { display: none; }
 
     .header-icons { display: flex; gap: 16px; align-items: center; }
     .icon-btn {
@@ -304,7 +310,7 @@
       border-color: var(--text); 
     }
 
-    /* Redesigned TV Controls */
+    /* Redesigned TV Controls with Dropdowns */
     .tv-controls { 
       display: none; 
       gap: 16px; 
@@ -325,20 +331,21 @@
       color: var(--text-muted);
       letter-spacing: 0.5px;
     }
-    .input-group input { 
-      width: 80px; 
-      padding: 10px; 
-      text-align: center; 
+    
+    /* Native Dropdown styling */
+    .input-group select { 
+      width: 110px; 
+      padding: 10px 8px; 
       border-radius: 8px; 
       border: 1px solid var(--border); 
       background: var(--input-bg); 
       color: var(--text); 
       font-weight: 700;
-      font-size: 15px;
+      font-size: 14px;
       outline: none;
-      transition: border-color 0.2s;
+      cursor: pointer;
     }
-    .input-group input:focus { border-color: var(--blue); }
+    .input-group select:focus { border-color: var(--blue); }
     
     .play-ep-btn {
       background: var(--blue);
@@ -367,10 +374,8 @@
       .post-header { padding: 12px 16px; }
       .post-footer { padding: 16px; }
       
-      /* Hide search bar by default on mobile so logo shows */
       .search-wrap { display: none; }
       
-      /* When active on mobile, it overlays the entire header */
       .search-wrap.mobile-active {
         display: flex;
         position: absolute;
@@ -407,7 +412,7 @@
   <div class="gate-box">
     <div class="app-logo">Cinegram</div>
     <div class="gate-subtitle">Sign in to access the vault.</div>
-    <input type="password" id="gate-pass" class="ig-input" placeholder="Password" autocomplete="off">
+    <input type="text" id="gate-pass" class="ig-input fake-pass" placeholder="Password" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     <button class="ig-btn" onclick="checkPass()">Log In</button>
     <div id="gate-error" class="gate-error"></div>
   </div>
@@ -435,11 +440,11 @@
       <div class="tv-controls" id="tv-controls">
         <div class="input-group">
           <label>SEASON</label>
-          <input type="number" id="tv-season" value="1" min="1">
+          <select id="tv-season"></select>
         </div>
         <div class="input-group">
           <label>EPISODE</label>
-          <input type="number" id="tv-ep" value="1" min="1">
+          <select id="tv-ep"></select>
         </div>
         <button class="play-ep-btn" onclick="loadCurrentSource()">Load Episode</button>
       </div>
@@ -513,6 +518,25 @@ function toggleTheme() {
   const next = current === 'dark' ? 'light' : 'dark';
   document.body.setAttribute('data-theme', next);
   localStorage.setItem('ig_theme', next);
+}
+
+// ─── GENERATE DROPDOWN OPTIONS ──────────────────────────────────────────────
+function populateSelects() {
+  const seasonSelect = document.getElementById('tv-season');
+  const epSelect = document.getElementById('tv-ep');
+  
+  let seasonHtml = '';
+  for (let i = 1; i <= 30; i++) {
+    seasonHtml += `<option value="${i}">Season ${i}</option>`;
+  }
+  
+  let epHtml = '';
+  for (let i = 1; i <= 100; i++) {
+    epHtml += `<option value="${i}">Episode ${i}</option>`;
+  }
+  
+  seasonSelect.innerHTML = seasonHtml;
+  epSelect.innerHTML = epHtml;
 }
 
 // ─── MOBILE SEARCH TOGGLE ───────────────────────────────────────────────────
@@ -590,6 +614,7 @@ async function tmdb(path, params = {}) {
 }
 
 async function init() {
+  populateSelects(); // Build the dropdown menus
   loadTab(currentTab, false);
 }
 
@@ -598,19 +623,17 @@ function switchTab(tab, event) {
   currentTab = tab;
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   
-  // If clicking from mobile bottom nav, target doesn't exist in same way
   if (event && event.target) {
     const btn = event.target.closest('.tab');
     if(btn) btn.classList.add('active');
   } else {
-    // Manually activate correct tab on desktop view if switched via mobile nav
     document.querySelectorAll('.tab').forEach(t => {
       if(t.textContent.toLowerCase().includes(tab)) t.classList.add('active');
     });
   }
   
   document.getElementById('search-input').value = '';
-  closeMobileSearch(); // Close search if open
+  closeMobileSearch(); 
   loadTab(tab, false);
 }
 
@@ -697,8 +720,9 @@ function openPlayer(id, tab, title, year) {
   const tvCtrl = document.getElementById('tv-controls');
   if (tab !== 'movies') {
     tvCtrl.classList.add('active');
-    document.getElementById('tv-season').value = 1;
-    document.getElementById('tv-ep').value = 1;
+    // Reset dropdowns to Season 1, Ep 1 whenever opening a new show
+    document.getElementById('tv-season').value = "1";
+    document.getElementById('tv-ep').value = "1";
   } else {
     tvCtrl.classList.remove('active');
   }
@@ -725,8 +749,8 @@ function buildSourceBar() {
 function loadCurrentSource() {
   if(SOURCES.length === 0) return;
   const iframe = document.getElementById('player-iframe');
-  const s = document.getElementById('tv-season').value || 1;
-  const e = document.getElementById('tv-ep').value || 1;
+  const s = document.getElementById('tv-season').value;
+  const e = document.getElementById('tv-ep').value;
   const src = SOURCES[activeSource];
   
   iframe.src = '';
