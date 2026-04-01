@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CineVault</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --black: #080808;
+      --deep: #0f0f0f;
+      --surface: #161616;
+      --border: #2a2a2a;
+      --muted: #444;
+      --text: #d8d0c4;
+      --dim: #7a7068;
+      --gold: #c9a84c;
+      --gold-light: #e8c97a;
+      --red: #8b2020;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--black);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      overflow-x: hidden;
+    }
+
+    /* ─── NOISE OVERLAY ─── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.4;
+    }
+
+    /* ─── PASSWORD GATE ─── */
+    #gate {
+      position: fixed;
+      inset: 0;
+      background: var(--black);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    .gate-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(36px, 8vw, 72px);
+      font-weight: 300;
+      letter-spacing: 0.3em;
+      color: var(--text);
+      text-align: center;
+      line-height: 1;
+    }
+
+    .gate-title span {
+      color: var(--gold);
+      font-style: italic;
+    }
+
+    .gate-subtitle {
+      color: var(--dim);
+      letter-spacing: 0.25em;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    .gate-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .gate-input {
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 16px;
+      padding: 10px 4px;
+      width: 240px;
+      text-align: center;
+      letter-spacing: 0.2em;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+
+    .gate-input:focus { border-color: var(--gold); }
+
+    .gate-btn {
+      background: transparent;
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      padding: 10px 32px;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 8px;
+    }
+
+    .gate-btn:hover { background: var(--gold); color: var(--black); }
+
+    .gate-error {
+      color: var(--red);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      height: 16px;
+      text-align: center;
+    }
+
+    .gate-line {
+      width: 1px;
+      height: 60px;
+      background: linear-gradient(to bottom, transparent, var(--border), transparent);
+    }
+
+    /* ─── SETUP MODAL ─── */
+    #setup-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 800;
+    }
+
+    .setup-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 40px;
+      max-width: 480px;
+      width: 90%;
+    }
+
+    .setup-box h2 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 28px;
+      font-weight: 300;
+      color: var(--gold);
+      margin-bottom: 8px;
+    }
+
+    .setup-box p {
+      color: var(--dim);
+      font-size: 11px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+      letter-spacing: 0.05em;
+    }
+
+    .setup-box a { color: var(--gold); }
+
+    .setup-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 20px;
+    }
+
+    .setup-field label {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--dim);
+    }
+
+    .setup-field input {
+      background: var(--deep);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      padding: 10px 12px;
+      outline: none;
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+
+    .setup-field input:focus { border-color: var(--gold); }
+
+    .setup-save {
+      background: var(--gold);
+      color: var(--black);
+      border: none;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 12px 28px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      width: 100%;
+    }
+
+    .setup-save:hover { opacity: 0.85; }
+
+    /* ─── MAIN APP ─── */
+    #app { display: none; min-height: 100vh; }
+
+    /* Header */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 40px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(8,8,8,0.95);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+    }
+
+    .logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      font-weight: 300;
+      letter-spacing: 0.35em;
+      color: var(--text);
+    }
+
+    .logo span { color: var(--gold); font-style: italic; }
+
+    .header-right { display: flex; align-items: center; gap: 20px; }
+
+    .search-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    #search-input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      padding: 9px 36px 9px 14px;
+      outline: none;
+      width: 260px;
+      transition: border-color 0.2s, width 0.3s;
+      letter-spacing: 0.05em;
+    }
+
+    #search-input:focus { border-color: var(--gold); width: 320px; }
+    #search-input::placeholder { color: var(--muted); }
+
+    .search-icon {
+      position: absolute;
+      right: 12px;
+      color: var(--dim);
+      font-size: 14px;
+      pointer-events: none;
+    }
+
+    .btn-setup {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--dim);
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-setup:hover { border-color: var(--gold); color: var(--gold); }
+
+    /* Content area */
+    main { padding: 48px 40px; }
+
+    .section-label {
+      font-size: 10px;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--dim);
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* Grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 20px;
+      margin-bottom: 64px;
+    }
+
+    .card {
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      background: var(--surface);
+      transition: transform 0.3s;
+    }
+
+    .card:hover { transform: translateY(-4px); }
+
+    .card:hover .card-overlay { opacity: 1; }
+
+    .card-poster {
+      width: 100%;
+      aspect-ratio: 2/3;
+      object-fit: cover;
+      display: block;
+      filter: brightness(0.9);
+      transition: filter 0.3s;
+    }
+
+    .card:hover .card-poster { filter: brightness(0.6); }
+
+    .card-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .play-icon {
+      width: 48px;
+      height: 48px;
+      border: 2px solid var(--gold);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--gold);
+      font-size: 18px;
+    }
+
+    .card-info {
+      padding: 12px 10px;
+    }
+
+    .card-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 15px;
+      font-weight: 300;
+      color: var(--text);
+      line-height: 1.3;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-meta {
+      font-size: 10px;
+      color: var(--dim);
+      letter-spacing: 0.1em;
+    }
+
+    .card-rating {
+      color: var(--gold);
+      font-size: 10px;
+    }
+
+    .no-poster {
+      width: 100%;
+      aspect-ratio: 2/3;
+      background: var(--deep);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 32px;
+    }
+
+    /* ─── PLAYER MODAL ─── */
+    #player-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.95);
+      z-index: 500;
+      display: none;
+      flex-direction: column;
+    }
+
+    .player-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .player-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      font-weight: 300;
+      color: var(--text);
+    }
+
+    .player-title small {
+      font-size: 13px;
+      color: var(--dim);
+      font-family: 'DM Mono', monospace;
+      margin-left: 12px;
+    }
+
+    .btn-close {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--dim);
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-close:hover { border-color: var(--red); color: #ff4444; }
+
+    .player-frame-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    #player-iframe {
+      width: 100%;
+      max-width: 1280px;
+      aspect-ratio: 16/9;
+      border: none;
+      background: #000;
+    }
+
+    /* TV Mode */
+    .tv-controls {
+      display: none;
+      padding: 16px 32px;
+      gap: 16px;
+      align-items: center;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .tv-controls.active { display: flex; }
+
+    .tv-controls label {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--dim);
+    }
+
+    .tv-controls input[type=number] {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      padding: 6px 10px;
+      outline: none;
+      width: 64px;
+      text-align: center;
+    }
+
+    .tv-controls input[type=number]:focus { border-color: var(--gold); }
+
+    .btn-go {
+      background: var(--gold);
+      color: var(--black);
+      border: none;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 8px 20px;
+      cursor: pointer;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 32px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tab {
+      background: transparent;
+      border: none;
+      color: var(--dim);
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 12px 24px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all 0.2s;
+    }
+
+    .tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+    .tab:hover:not(.active) { color: var(--text); }
+
+    /* Loading / Empty */
+    .loading {
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--dim);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+    }
+
+    .loading::after {
+      content: '';
+      display: block;
+      width: 32px;
+      height: 1px;
+      background: var(--gold);
+      margin: 16px auto 0;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pulse { 0%,100%{opacity:0.2} 50%{opacity:1} }
+
+    .no-api-notice {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--gold);
+      padding: 20px 24px;
+      margin-bottom: 32px;
+      font-size: 12px;
+      color: var(--dim);
+      line-height: 1.7;
+      letter-spacing: 0.05em;
+    }
+
+    .no-api-notice strong { color: var(--gold); }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--black); }
+    ::-webkit-scrollbar-thumb { background: var(--border); }
+    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+    @media (max-width: 600px) {
+      header { padding: 16px 20px; flex-wrap: wrap; gap: 12px; }
+      main { padding: 32px 20px; }
+      #search-input { width: 100%; }
+      #search-input:focus { width: 100%; }
+      .player-frame-wrap { padding: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── PASSWORD GATE ─── -->
+<div id="gate">
+  <div class="gate-line"></div>
+  <div class="gate-title">Cine<span>Vault</span></div>
+  <div class="gate-subtitle">Private Screening Room</div>
+  <div class="gate-line"></div>
+  <div class="gate-form">
+    <input class="gate-input" type="password" id="gate-pass" placeholder="enter password" autocomplete="off" />
+    <div class="gate-error" id="gate-error"></div>
+    <button class="gate-btn" onclick="checkPass()">Enter</button>
+  </div>
+</div>
+
+<!-- ─── SETUP MODAL ─── -->
+<div id="setup-modal" style="display:none;">
+  <div class="setup-box">
+    <h2>Configuration</h2>
+    <p>
+      To search movies you need a free TMDB API key.<br>
+      Get one at <a href="https://www.themoviedb.org/settings/api" target="_blank">themoviedb.org/settings/api</a> — it's free and instant.<br><br>
+      You can also change your password here. Leave blank to keep existing.
+    </p>
+    <div class="setup-field">
+      <label>TMDB API Key (v3 auth)</label>
+      <input type="text" id="cfg-tmdb" placeholder="your_api_key_here" />
+    </div>
+    <div class="setup-field">
+      <label>New Password (optional)</label>
+      <input type="password" id="cfg-pass" placeholder="leave blank to keep" />
+    </div>
+    <button class="setup-save" onclick="saveConfig()">Save & Close</button>
+  </div>
+</div>
+
+<!-- ─── PLAYER MODAL ─── -->
+<div id="player-modal">
+  <div class="player-header">
+    <div class="player-title" id="player-label">—<small id="player-year"></small></div>
+    <button class="btn-close" onclick="closePlayer()">✕ Close</button>
+  </div>
+  <div class="player-frame-wrap">
+    <iframe id="player-iframe" allowfullscreen allow="autoplay; fullscreen"></iframe>
+  </div>
+  <div class="tv-controls" id="tv-controls">
+    <label>Season</label>
+    <input type="number" id="tv-season" value="1" min="1" max="99" />
+    <label>Episode</label>
+    <input type="number" id="tv-ep" value="1" min="1" max="999" />
+    <button class="btn-go" onclick="loadEpisode()">Load Episode</button>
+  </div>
+</div>
+
+<!-- ─── MAIN APP ─── -->
+<div id="app">
+  <header>
+    <div class="logo">Cine<span>Vault</span></div>
+    <div class="header-right">
+      <div class="search-wrap">
+        <input type="text" id="search-input" placeholder="Search movies & series…" autocomplete="off" />
+        <span class="search-icon">⌕</span>
+      </div>
+      <button class="btn-setup" onclick="openSetup()">⚙ Config</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="no-api" class="no-api-notice" style="display:none;">
+      <strong>TMDB API key not configured.</strong><br>
+      Click <strong>⚙ Config</strong> above and add your free TMDB API key to browse movies. Get one at <a href="https://www.themoviedb.org/settings/api" target="_blank" style="color:var(--gold)">themoviedb.org</a>.
+    </div>
+
+    <div class="tabs" id="tabs">
+      <button class="tab active" onclick="switchTab('movies')">Movies</button>
+      <button class="tab" onclick="switchTab('tv')">TV Series</button>
+    </div>
+
+    <div id="content-area">
+      <div class="loading">Loading</div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ─── CONFIG & STATE ─────────────────────────────────────────────────────────
+const DEFAULTS = {
+  password: 'mgp',   // ← CHANGE THIS or set via Config panel
+  tmdbKey: 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlZDZkNDFmOWViOGM3MzZhMjU2NTE5MTFkNmJjNzIyYSIsIm5iZiI6MTc3NTA1MjI1NS41MTAwMDAyLCJzdWIiOiI2OWNkMjVkZmJlZTYzZTBjMTM4N2E4MTYiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.wKj5jTsq2KDD-TKVYVDQMlAHRzbYN-6GkNtAZJmMCw8',
+};
+
+let cfg = {
+  password: localStorage.getItem('cv_pass') || DEFAULTS.password,
+  tmdbKey:  localStorage.getItem('cv_tmdb') || DEFAULTS.tmdbKey,
+};
+
+let currentTab = 'movies';
+let currentMovieId = null;
+let searchTimeout = null;
+
+// ─── AUTH ───────────────────────────────────────────────────────────────────
+function checkPass() {
+  const val = document.getElementById('gate-pass').value;
+  if (val === cfg.password) {
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    init();
+  } else {
+    document.getElementById('gate-error').textContent = 'incorrect password';
+    document.getElementById('gate-pass').value = '';
+  }
+}
+
+document.getElementById('gate-pass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkPass();
+});
+
+// ─── SETUP ──────────────────────────────────────────────────────────────────
+function openSetup() {
+  document.getElementById('cfg-tmdb').value = cfg.tmdbKey;
+  document.getElementById('cfg-pass').value = '';
+  document.getElementById('setup-modal').style.display = 'flex';
+}
+
+function saveConfig() {
+  const newKey = document.getElementById('cfg-tmdb').value.trim();
+  const newPass = document.getElementById('cfg-pass').value;
+  if (newKey) { cfg.tmdbKey = newKey; localStorage.setItem('cv_tmdb', newKey); }
+  if (newPass) { cfg.password = newPass; localStorage.setItem('cv_pass', newPass); }
+  document.getElementById('setup-modal').style.display = 'none';
+  init();
+}
+
+// ─── TMDB API ────────────────────────────────────────────────────────────────
+const TMDB = 'https://api.themoviedb.org/3';
+const IMG  = 'https://image.tmdb.org/t/p/w342';
+
+async function tmdb(path, params = {}) {
+  if (!cfg.tmdbKey) return null;
+  const q = new URLSearchParams({ api_key: cfg.tmdbKey, language: 'en-US', ...params });
+  const res = await fetch(`${TMDB}${path}?${q}`);
+  if (!res.ok) return null;
+  return res.json();
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+async function init() {
+  if (!cfg.tmdbKey) {
+    document.getElementById('no-api').style.display = 'block';
+    document.getElementById('content-area').innerHTML = '';
+    return;
+  }
+  document.getElementById('no-api').style.display = 'none';
+  loadTab(currentTab);
+}
+
+// ─── TABS ────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('search-input').value = '';
+  loadTab(tab);
+}
+
+async function loadTab(tab) {
+  if (!cfg.tmdbKey) return;
+  showLoading();
+  const type = tab === 'movies' ? '/movie' : '/tv';
+  const endpoint = tab === 'movies' ? '/movie/popular' : '/tv/popular';
+  const data = await tmdb(endpoint, { page: 1 });
+  if (!data) return showError();
+
+  const label = tab === 'movies' ? 'Popular Movies' : 'Popular Series';
+  renderCards(data.results, tab, label);
+}
+
+// ─── SEARCH ──────────────────────────────────────────────────────────────────
+document.getElementById('search-input').addEventListener('input', e => {
+  clearTimeout(searchTimeout);
+  const q = e.target.value.trim();
+  if (!q) { loadTab(currentTab); return; }
+  searchTimeout = setTimeout(() => doSearch(q), 400);
+});
+
+async function doSearch(query) {
+  if (!cfg.tmdbKey) return;
+  showLoading();
+  const endpoint = currentTab === 'movies' ? '/search/movie' : '/search/tv';
+  const data = await tmdb(endpoint, { query, page: 1 });
+  if (!data) return showError();
+  renderCards(data.results, currentTab, `Results for "${query}"`);
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function renderCards(items, tab, label) {
+  const area = document.getElementById('content-area');
+  if (!items || items.length === 0) {
+    area.innerHTML = `<div class="loading">No results found</div>`;
+    return;
+  }
+
+  const cards = items.map(item => {
+    const title  = item.title || item.name || '—';
+    const year   = (item.release_date || item.first_air_date || '').slice(0, 4);
+    const rating = item.vote_average ? item.vote_average.toFixed(1) : '—';
+    const poster = item.poster_path
+      ? `<img class="card-poster" src="${IMG}${item.poster_path}" alt="${title}" loading="lazy" />`
+      : `<div class="no-poster">🎬</div>`;
+
+    return `
+      <div class="card" onclick="openPlayer(${item.id}, '${tab}', \`${title.replace(/`/g, "'")}\`, '${year}')">
+        ${poster}
+        <div class="card-overlay"><div class="play-icon">▶</div></div>
+        <div class="card-info">
+          <div class="card-title">${title}</div>
+          <div class="card-meta">
+            ${year}
+            <span class="card-rating" style="margin-left:8px">★ ${rating}</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  area.innerHTML = `
+    <p class="section-label">${label}</p>
+    <div class="grid">${cards}</div>`;
+}
+
+// ─── PLAYER ──────────────────────────────────────────────────────────────────
+function openPlayer(id, tab, title, year) {
+  currentMovieId = id;
+  document.getElementById('player-label').textContent = title;
+  document.getElementById('player-year').textContent = year ? ` — ${year}` : '';
+
+  const modal = document.getElementById('player-modal');
+  const tvCtrl = document.getElementById('tv-controls');
+  const iframe = document.getElementById('player-iframe');
+
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+
+  if (tab === 'movies') {
+    tvCtrl.classList.remove('active');
+    iframe.src = `https://www.vidking.net/embed/movie/${id}`;
+  } else {
+    tvCtrl.classList.add('active');
+    document.getElementById('tv-season').value = 1;
+    document.getElementById('tv-ep').value = 1;
+    iframe.src = `https://www.vidking.net/embed/tv/${id}/1/1`;
+  }
+}
+
+function loadEpisode() {
+  const s = document.getElementById('tv-season').value;
+  const e = document.getElementById('tv-ep').value;
+  document.getElementById('player-iframe').src =
+    `https://www.vidking.net/embed/tv/${currentMovieId}/${s}/${e}`;
+}
+
+function closePlayer() {
+  document.getElementById('player-modal').style.display = 'none';
+  document.getElementById('player-iframe').src = '';
+  document.body.style.overflow = '';
+  currentMovieId = null;
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function showLoading() {
+  document.getElementById('content-area').innerHTML = '<div class="loading">Loading</div>';
+}
+
+function showError() {
+  document.getElementById('content-area').innerHTML =
+    '<div class="loading">Failed to load — check your API key in Config</div>';
+}
+
+// Close modals on backdrop click
+document.getElementById('setup-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('setup-modal'))
+    document.getElementById('setup-modal').style.display = 'none';
+});
+</script>
+</body>
+</html>
