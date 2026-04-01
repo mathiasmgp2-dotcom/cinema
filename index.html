@@ -202,11 +202,13 @@
 <div id="app">
   <header>
     <div class="app-logo" style="margin-bottom:0;">MathFlix</div>
-    <form class="search-wrap" id="desktop-search" action="javascript:void(0);">
+    
+    <form class="search-wrap" id="desktop-search" action="." onsubmit="return handleSearchSubmit(event)">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-      <input type="search" id="search-input" placeholder="Search..." autocomplete="off">
+      <input type="search" id="search-input" placeholder="Search..." autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="search">
       <button type="button" class="close-search" onclick="closeMobileSearch()">Cancel</button>
     </form>
+    
   </header>
 
   <div class="profile-tabs" id="tabs">
@@ -356,11 +358,13 @@ searchInput.addEventListener('input', () => {
   searchTimeout = setTimeout(() => { executeSearch(false); }, 800);
 });
 
-searchForm.addEventListener('submit', (e) => {
-  e.preventDefault(); 
-  executeSearch(true); 
-  searchInput.blur();  
-});
+// HARWIRED iOS SUBMIT FUNCTION
+window.handleSearchSubmit = function(e) {
+  if (e) e.preventDefault(); // Stop page reload
+  executeSearch(true);       // Force search immediately
+  searchInput.blur();        // Hide the iPhone keyboard
+  return false;              // Extra safety for iOS Safari
+};
 
 
 // ─── UI CONTROLS ────────────────────────────────────────────────────────────
@@ -410,7 +414,7 @@ function switchTab(tab) {
   document.getElementById('grid').style.display = tab === 'library' ? 'none' : 'grid';
   document.getElementById('library-sections').style.display = tab === 'library' ? 'block' : 'none';
   
-  document.getElementById('search-input').value = '';
+  searchInput.value = '';
   searchForm.classList.remove('mobile-active');
   
   renderFilters();
