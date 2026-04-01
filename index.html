@@ -155,15 +155,16 @@
     .icon-btn { background: transparent; border: none; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 4px; transition: color 0.2s; }
     .icon-btn:hover { color: var(--text); }
     
+    /* ─── MOBILE RESPONSIVE TWEAKS ─── */
     @media (max-width: 767px) {
       .bottom-nav { display: flex; }
       header .app-logo { font-size: 20px; }
       
-      /* Fullscreen Native App Modal for Mobile */
+      .search-wrap input, .input-group select { font-size: 16px !important; }
+      
       #player-modal { padding: 0; align-items: flex-end; }
       .post-container { max-height: 100vh; height: 100%; border-radius: 0; border: none; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);}
       
-      /* Mobile Search Overlay */
       .search-wrap { display: none; }
       .search-wrap.mobile-active {
         display: flex; position: absolute; inset: 0; background: var(--nav-bg); margin: 0; padding: 0 20px; padding-top: env(safe-area-inset-top); align-items: center; z-index: 10; width: 100%; max-width: 100%;
@@ -196,7 +197,7 @@
       <div id="video-placeholder" class="video-placeholder" onclick="startPlayback()">
         <div class="play-circle">▶</div>
       </div>
-      <iframe id="player-iframe" allowfullscreen sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"></iframe>
+      <iframe id="player-iframe" allowfullscreen allow="autoplay; fullscreen"></iframe>
     </div>
     
     <div class="post-footer">
@@ -308,12 +309,14 @@ let currentSeasons = [];
 let searchTimeout = null;
 let isPlaying = false; 
 
+// ─── HIGH QUALITY STREAMING SOURCES ─────────────────────────────────────────
+// Cleaned up the sources to provide the most reliable ones with the fewest popups.
 const SOURCES = [
-  { name: 'VSEmbed', movie: id => `https://vsembed.ru/embed/movie?tmdb=${id}`, tv: (id,s,e) => `https://vsembed.ru/embed/tv?tmdb=${id}&season=${s}&episode=${e}` },
-  { name: 'VidSrc', movie: id => `https://vidsrc.me/embed/movie?tmdb=${id}`, tv: (id,s,e) => `https://vidsrc.me/embed/tv?tmdb=${id}&season=${s}&episode=${e}` },
-  { name: 'VidSrc Pro', movie: id => `https://vidsrc.pro/embed/movie/${id}`, tv: (id,s,e) => `https://vidsrc.pro/embed/tv/${id}/${s}/${e}` },
-  { name: 'AutoEmbed', movie: id => `https://autoembed.co/movie/tmdb/${id}`, tv: (id,s,e) => `https://autoembed.co/tv/tmdb/${id}-${s}-${e}` },
-  { name: 'VidLink', movie: id => `https://vidlink.pro/movie/${id}`, tv: (id,s,e) => `https://vidlink.pro/tv/${id}/${s}/${e}` }
+  { name: 'VidLink', movie: id => `https://vidlink.pro/movie/${id}?primaryColor=e50914&autoplay=false`, tv: (id,s,e) => `https://vidlink.pro/tv/${id}/${s}/${e}?primaryColor=e50914&autoplay=false` },
+  { name: 'SuperEmbed', movie: id => `https://multiembed.mov/directstream.php?video_id=${id}&tmdb=1`, tv: (id,s,e) => `https://multiembed.mov/directstream.php?video_id=${id}&tmdb=1&s=${s}&e=${e}` },
+  { name: 'VidSrc.net', movie: id => `https://vidsrc.net/embed/movie?tmdb=${id}`, tv: (id,s,e) => `https://vidsrc.net/embed/tv?tmdb=${id}&season=${s}&episode=${e}` },
+  { name: 'AutoEmbed', movie: id => `https://player.autoembed.cc/embed/movie/${id}`, tv: (id,s,e) => `https://player.autoembed.cc/embed/tv/${id}/${s}/${e}` },
+  { name: 'VidSrc.cc', movie: id => `https://vidsrc.cc/v2/embed/movie/${id}`, tv: (id,s,e) => `https://vidsrc.cc/v2/embed/tv/${id}/${s}/${e}` }
 ];
 
 // ─── CORE ───────────────────────────────────────────────────────────────────
@@ -352,8 +355,6 @@ function openMobileSearch() {
 
 function closeMobileSearch() {
   searchForm.classList.remove('mobile-active');
-  // If the user hits cancel but they typed something previously, don't delete their active search
-  // Only close the visual overlay.
 }
 
 searchInput.addEventListener('focus', () => {
@@ -413,7 +414,6 @@ function setSort(type) { sortBy = type; reloadFeed(); }
 
 function switchTab(tab) {
   currentTab = tab; activeGenre = ''; sortBy = 'trending'; 
-  // IMPORTANT: We explicitly do NOT clear the currentSearch here anymore!
   
   document.querySelectorAll('.profile-tabs .tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.profile-tabs .tab').forEach(t => {
@@ -430,7 +430,6 @@ function switchTab(tab) {
   document.getElementById('grid').style.display = tab === 'library' ? 'none' : 'grid';
   document.getElementById('library-sections').style.display = tab === 'library' ? 'block' : 'none';
   
-  // Only hide the mobile search overlay if they didn't type anything yet
   if (!currentSearch) {
     searchForm.classList.remove('mobile-active');
   }
