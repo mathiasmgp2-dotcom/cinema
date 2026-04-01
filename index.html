@@ -52,7 +52,7 @@
       padding: 0 20px; height: 60px; z-index: 100;
     }
     .search-wrap { flex: 1; max-width: 300px; margin: 0 20px; position: relative; display: flex; align-items: center;}
-    .search-wrap input { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 20px; padding: 8px 16px 8px 36px; color: var(--text); font-size: 14px; outline: none; }
+    .search-wrap input { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 20px; padding: 8px 16px 8px 36px; color: var(--text); font-size: 14px; outline: none; -webkit-appearance: none; }
     .search-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
     .close-search { display: none; background: none; border: none; color: var(--text); font-size: 14px; font-weight: 600; margin-left: 12px; }
 
@@ -202,11 +202,11 @@
 <div id="app">
   <header>
     <div class="app-logo" style="margin-bottom:0;">MathFlix</div>
-    <div class="search-wrap" id="desktop-search">
+    <form class="search-wrap" id="desktop-search" onsubmit="handleSearchSubmit(event)">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-      <input type="text" id="search-input" placeholder="Search..." autocomplete="off">
-      <button class="close-search" onclick="closeMobileSearch()">Cancel</button>
-    </div>
+      <input type="search" id="search-input" placeholder="Search..." autocomplete="off">
+      <button type="button" class="close-search" onclick="closeMobileSearch()">Cancel</button>
+    </form>
   </header>
 
   <div class="profile-tabs" id="tabs">
@@ -316,7 +316,7 @@ function newSearchParams(obj) {
   return q;
 }
 
-// ─── MOBILE SEARCH TOGGLE ───────────────────────────────────────────────────
+// ─── MOBILE SEARCH TOGGLE & SUBMIT ──────────────────────────────────────────
 function openMobileSearch() {
   const wrap = document.getElementById('desktop-search');
   wrap.classList.add('mobile-active');
@@ -333,6 +333,16 @@ function closeMobileSearch() {
     currentSearch = '';
     reloadFeed();
   }
+}
+
+// This function fires when the user hits "Enter" or "Search" on their keyboard
+function handleSearchSubmit(e) {
+  e.preventDefault(); // Prevents the page from refreshing
+  const input = document.getElementById('search-input');
+  clearTimeout(searchTimeout);
+  currentSearch = input.value.trim();
+  reloadFeed();
+  input.blur(); // Instantly hides the mobile keyboard
 }
 
 // ─── UI CONTROLS ────────────────────────────────────────────────────────────
@@ -393,7 +403,6 @@ function switchTab(tab) {
 }
 
 function reloadFeed() {
-  // We no longer clear currentSearch here! It's handled by the inputs/tabs.
   currentPage = 1; 
   document.getElementById('grid').innerHTML = ''; 
   loadFeed();
@@ -416,7 +425,7 @@ async function loadFeed() {
   
   if(data && data.results) {
     if(currentPage === 1 && !currentSearch && data.results.length > 0) renderHero(data.results[0]);
-    if(currentPage === 1 && currentSearch) document.getElementById('hero').style.display = 'none'; // hide hero when searching
+    if(currentPage === 1 && currentSearch) document.getElementById('hero').style.display = 'none'; 
     renderCards(data.results, 'grid');
   }
   isLoading = false;
@@ -619,7 +628,7 @@ function closePlayer() {
 document.getElementById('search-input').addEventListener('input', e => {
   clearTimeout(searchTimeout);
   currentSearch = e.target.value.trim();
-  searchTimeout = setTimeout(() => { reloadFeed(); }, 500);
+  searchTimeout = setTimeout(() => { reloadFeed(); }, 800);
 });
 
 const observer = new IntersectionObserver((entries) => {
