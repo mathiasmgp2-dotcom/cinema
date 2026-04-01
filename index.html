@@ -337,35 +337,29 @@ function closeMobileSearch() {
   }
 }
 
-// 1. Force switch out of Library tab if user clicks search
 searchInput.addEventListener('focus', () => {
-  if (currentTab === 'library') {
-    switchTab('movies'); 
-  }
+  if (currentTab === 'library') switchTab('movies'); 
 });
 
-// 2. The core execute search function
 function executeSearch(force = false) {
   clearTimeout(searchTimeout);
   const val = searchInput.value.trim();
-  if (!force && val === currentSearch) return; // Ignore if text didn't change
+  if (!force && val === currentSearch) return; 
   currentSearch = val;
   currentPage = 1;
   document.getElementById('grid').innerHTML = '';
   loadFeed();
 }
 
-// 3. Listen for typing (Live search after 800ms)
 searchInput.addEventListener('input', () => {
   clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => { executeSearch(false); }, 800);
 });
 
-// 4. Listen for PC "Enter" or iPhone "Search" button
 searchForm.addEventListener('submit', (e) => {
-  e.preventDefault(); // Stop page reload
-  executeSearch(true); // Force search immediately
-  searchInput.blur();  // Hide the keyboard
+  e.preventDefault(); 
+  executeSearch(true); 
+  searchInput.blur();  
 });
 
 
@@ -401,13 +395,11 @@ function setSort(type) { sortBy = type; reloadFeed(); }
 function switchTab(tab) {
   currentTab = tab; activeGenre = ''; sortBy = 'trending'; currentSearch = '';
   
-  // Highlight correct top tab
   document.querySelectorAll('.profile-tabs .tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.profile-tabs .tab').forEach(t => {
     if(t.textContent.toLowerCase().includes(tab.replace('library', 'my library'))) t.classList.add('active');
   });
   
-  // Highlight correct bottom nav icon
   document.querySelectorAll('.bottom-nav .icon-btn').forEach(b => b.style.color = 'var(--text-muted)');
   const bottomBtns = document.querySelectorAll('.bottom-nav .icon-btn');
   if(tab === 'movies') bottomBtns[0].style.color = 'var(--blue)';
@@ -562,13 +554,21 @@ async function openPlayer(item) {
       savedE = db.resume[item.id].e;
     }
     
-    sSelect.innerHTML = currentSeasons.map(s => `<option value="${s.season_number}">Season ${s.season_number}</option>`).join('');
+    // GUARANTEE HIGH LIMITS FOR LEAKED/UNLISTED SEASONS
+    let maxSeason = currentSeasons.length > 0 ? Math.max(...currentSeasons.map(s => s.season_number)) : 1;
+    maxSeason = Math.max(maxSeason, 20); // Pad up to 20 just in case
+    
+    sSelect.innerHTML = Array.from({length: maxSeason}, (_, i) => i + 1)
+      .map(s => `<option value="${s}">Season ${s}</option>`).join('');
+      
     if([...sSelect.options].some(o => o.value == savedS)) sSelect.value = savedS;
     
     function buildEpisodes() {
       const sNum = parseInt(sSelect.value) || 1;
       const seasonData = currentSeasons.find(s => s.season_number === sNum);
-      const epCount = seasonData ? seasonData.episode_count : 1;
+      let epCount = seasonData ? seasonData.episode_count : 0;
+      epCount = Math.max(epCount, 100); // Pad up to 100 just in case
+      
       eSelect.innerHTML = Array.from({length: epCount}, (_, i) => i + 1)
         .map(ep => `<option value="${ep}">Episode ${ep}</option>`).join('');
     }
