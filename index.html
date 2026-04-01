@@ -2,7 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MathFlix">
+  
   <title>MathFlix</title>
   <style>
     /* ─── PREMIUM DARK THEME (Max/Netflix style) ─── */
@@ -28,7 +33,8 @@
       color: var(--text);
       -webkit-font-smoothing: antialiased;
       overflow-y: scroll;
-      padding-bottom: 90px; /* Increased to clear mobile nav */
+      /* Accounts for the bottom nav bar + iOS home indicator */
+      padding-bottom: calc(70px + env(safe-area-inset-bottom)); 
     }
 
     button { font-family: inherit; cursor: pointer; }
@@ -42,21 +48,21 @@
     .app-logo { font-size: 32px; font-weight: 900; letter-spacing: -1px; margin-bottom: 20px; color: var(--blue); text-transform: uppercase;}
     .ig-input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px; font-size: 16px; margin-bottom: 15px; color: var(--text); outline: none; }
     .fake-pass { -webkit-text-security: disc; }
-    .ig-btn { width: 100%; background: var(--blue); color: white; border: none; border-radius: 8px; padding: 14px; font-weight: 600; font-size: 14px; }
+    .ig-btn { width: 100%; background: var(--blue); color: white; border: none; border-radius: 8px; padding: 14px; font-weight: 600; font-size: 16px; }
     #app { display: none; }
 
-    /* ─── HEADER & TABS ─── */
+    /* ─── HEADER & TABS (iOS Safe Area Optimized) ─── */
     header {
       position: fixed; top: 0; width: 100%; background: var(--glass); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;
-      padding: 0 20px; height: 60px; z-index: 100;
+      padding: 0 20px; padding-top: env(safe-area-inset-top); height: calc(60px + env(safe-area-inset-top)); z-index: 100;
     }
     .search-wrap { flex: 1; max-width: 300px; margin: 0 20px; position: relative; display: flex; align-items: center;}
-    .search-wrap input { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 20px; padding: 8px 16px 8px 36px; color: var(--text); font-size: 14px; outline: none; -webkit-appearance: none; }
+    .search-wrap input { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 20px; padding: 8px 16px 8px 36px; color: var(--text); font-size: 16px; outline: none; -webkit-appearance: none; }
     .search-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
     .close-search { display: none; background: none; border: none; color: var(--text); font-size: 14px; font-weight: 600; margin-left: 12px; }
 
-    .profile-tabs { display: flex; justify-content: center; max-width: 1200px; margin: 60px auto 0; border-bottom: 1px solid var(--border); }
+    .profile-tabs { display: flex; justify-content: center; max-width: 1200px; margin: calc(60px + env(safe-area-inset-top)) auto 0; border-bottom: 1px solid var(--border); }
     .profile-tabs .tab { flex: 1; max-width: 120px; background: transparent; border: none; color: var(--text-muted); padding: 15px 0; font-weight: 600; font-size: 13px; border-bottom: 2px solid transparent; transition: color 0.2s; }
     .profile-tabs .tab.active { color: var(--text); border-bottom-color: var(--blue); }
 
@@ -121,7 +127,6 @@
     .post-video { width: 100%; aspect-ratio: 16/9; background: #000; position: relative; }
     .post-video iframe { width: 100%; height: 100%; border: none; display: none; }
     
-    /* Play Placeholder Overlay */
     .video-placeholder { position: absolute; inset: 0; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 5; }
     .video-placeholder::after { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,0.4); }
     .play-circle { width: 64px; height: 64px; background: rgba(229, 9, 20, 0.8); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: white; transition: transform 0.2s; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
@@ -138,37 +143,33 @@
 
     .tv-controls { display: none; gap: 12px; align-items: flex-end; padding-top: 10px; margin-bottom: 20px; }
     .tv-controls.active { display: flex; flex-wrap: wrap; }
-    .input-group select { padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); font-weight: 700; outline: none; cursor: pointer; }
+    .input-group select { padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); font-weight: 700; outline: none; cursor: pointer; font-size: 16px !important; }
     .input-group select:focus { border-color: var(--blue); }
-    .play-ep-btn { background: var(--text); color: var(--bg); border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; transition: opacity 0.2s; }
+    .play-ep-btn { background: var(--text); color: var(--bg); border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; transition: opacity 0.2s; font-size: 14px;}
     .play-ep-btn:hover { opacity: 0.8; }
 
     .modal-section-title { font-size: 14px; font-weight: 700; color: var(--text-muted); margin: 20px 0 10px; text-transform: uppercase; letter-spacing: 1px; }
 
-    /* ─── BOTTOM NAV ─── */
-    .bottom-nav { display: none; position: fixed; bottom: 0; width: 100%; background: var(--glass); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--border); justify-content: space-around; padding: 12px 0; z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
+    /* ─── BOTTOM NAV (iOS Safe Area Optimized) ─── */
+    .bottom-nav { display: none; position: fixed; bottom: 0; width: 100%; background: var(--glass); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--border); justify-content: space-around; padding-top: 12px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 100; }
     .icon-btn { background: transparent; border: none; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 4px; transition: color 0.2s; }
     .icon-btn:hover { color: var(--text); }
     
-    /* ─── MOBILE RESPONSIVE TWEAKS ─── */
     @media (max-width: 767px) {
       .bottom-nav { display: flex; }
       header .app-logo { font-size: 20px; }
       
-      /* Force inputs to 16px to prevent iOS auto-zoom bug */
-      .search-wrap input, .input-group select { font-size: 16px !important; }
-      
       /* Fullscreen Native App Modal for Mobile */
       #player-modal { padding: 0; align-items: flex-end; }
-      .post-container { max-height: 100vh; height: 100%; border-radius: 0; border: none; }
+      .post-container { max-height: 100vh; height: 100%; border-radius: 0; border: none; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);}
       
       /* Mobile Search Overlay */
       .search-wrap { display: none; }
       .search-wrap.mobile-active {
-        display: flex; position: absolute; inset: 0; background: var(--nav-bg); margin: 0; padding: 0 20px; align-items: center; z-index: 10; width: 100%; max-width: 100%;
+        display: flex; position: absolute; inset: 0; background: var(--nav-bg); margin: 0; padding: 0 20px; padding-top: env(safe-area-inset-top); align-items: center; z-index: 10; width: 100%; max-width: 100%;
       }
       .search-wrap.mobile-active input { width: 100%; margin: 0; }
-      .search-wrap.mobile-active svg { left: 32px; }
+      .search-wrap.mobile-active svg { left: 32px; margin-top: calc(env(safe-area-inset-top) / 2); }
       .search-wrap.mobile-active .close-search { display: block; }
     }
   </style>
@@ -188,14 +189,14 @@
   <div class="post-container">
     <div class="post-header">
       <div style="font-weight:700; font-size:18px;" id="player-label">Title</div>
-      <button style="background:none; border:none; color:var(--text-muted); font-size: 18px;" onclick="closePlayer()">✕</button>
+      <button style="background:none; border:none; color:var(--text-muted); font-size: 18px; padding: 10px;" onclick="closePlayer()">✕</button>
     </div>
     
     <div class="post-video">
       <div id="video-placeholder" class="video-placeholder" onclick="startPlayback()">
         <div class="play-circle">▶</div>
       </div>
-      <iframe id="player-iframe" allowfullscreen></iframe>
+      <iframe id="player-iframe" allowfullscreen sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"></iframe>
     </div>
     
     <div class="post-footer">
@@ -305,7 +306,7 @@ let isLoading = false;
 let currentItem = null; 
 let currentSeasons = []; 
 let searchTimeout = null;
-let isPlaying = false; // Tracks if the user actually clicked play
+let isPlaying = false; 
 
 const SOURCES = [
   { name: 'VSEmbed', movie: id => `https://vsembed.ru/embed/movie?tmdb=${id}`, tv: (id,s,e) => `https://vsembed.ru/embed/tv?tmdb=${id}&season=${s}&episode=${e}` },
@@ -351,11 +352,8 @@ function openMobileSearch() {
 
 function closeMobileSearch() {
   searchForm.classList.remove('mobile-active');
-  if (searchInput.value !== '') {
-    searchInput.value = '';
-    currentSearch = '';
-    reloadFeed();
-  }
+  // If the user hits cancel but they typed something previously, don't delete their active search
+  // Only close the visual overlay.
 }
 
 searchInput.addEventListener('focus', () => {
@@ -383,7 +381,6 @@ window.handleSearchSubmit = function(e) {
   searchInput.blur();        
   return false;              
 };
-
 
 // ─── UI CONTROLS ────────────────────────────────────────────────────────────
 async function loadGenres() {
@@ -415,7 +412,8 @@ function setGenre(id) { activeGenre = id; reloadFeed(); }
 function setSort(type) { sortBy = type; reloadFeed(); }
 
 function switchTab(tab) {
-  currentTab = tab; activeGenre = ''; sortBy = 'trending'; currentSearch = '';
+  currentTab = tab; activeGenre = ''; sortBy = 'trending'; 
+  // IMPORTANT: We explicitly do NOT clear the currentSearch here anymore!
   
   document.querySelectorAll('.profile-tabs .tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.profile-tabs .tab').forEach(t => {
@@ -428,12 +426,14 @@ function switchTab(tab) {
   if(tab === 'tv') bottomBtns[1].style.color = 'var(--blue)';
   if(tab === 'library') bottomBtns[3].style.color = 'var(--blue)';
 
-  document.getElementById('hero').style.display = tab === 'library' ? 'none' : 'block';
+  document.getElementById('hero').style.display = tab === 'library' ? 'none' : (currentSearch ? 'none' : 'block');
   document.getElementById('grid').style.display = tab === 'library' ? 'none' : 'grid';
   document.getElementById('library-sections').style.display = tab === 'library' ? 'block' : 'none';
   
-  searchInput.value = '';
-  searchForm.classList.remove('mobile-active');
+  // Only hide the mobile search overlay if they didn't type anything yet
+  if (!currentSearch) {
+    searchForm.classList.remove('mobile-active');
+  }
   
   renderFilters();
   if(tab === 'library') loadLibrary();
@@ -547,14 +547,13 @@ function openPlayerFromEl(el) {
 
 async function openPlayer(item) {
   currentItem = item;
-  isPlaying = false; // Reset play state
+  isPlaying = false; 
   
   const isMovie = item.media_type === 'movies' || item.title;
   const typeStr = isMovie ? 'movie' : 'tv';
   
   document.getElementById('player-label').textContent = item.title || item.name;
   
-  // RESET THE PLAYER UI
   document.getElementById('player-iframe').style.display = 'none';
   document.getElementById('player-iframe').src = '';
   
@@ -610,7 +609,7 @@ async function openPlayer(item) {
     
     sSelect.onchange = () => { 
       buildEpisodes(); 
-      if(isPlaying) loadCurrentSource(0); // Only auto-play if they were already watching
+      if(isPlaying) loadCurrentSource(0); 
     };
     eSelect.onchange = () => {
       if(isPlaying) loadCurrentSource(0);
@@ -645,9 +644,6 @@ async function openPlayer(item) {
       return `<div class="similar-card" onclick="openPlayerFromEl(this)" data-item="${sData}"><img src="${IMG}${s.poster_path}" /></div>`;
     }).join('');
   } else { document.getElementById('similar-title').style.display = 'none'; simEl.innerHTML = ''; }
-
-  // We explicitly DO NOT call loadCurrentSource() here anymore.
-  // The user must click the placeholder or "Play" button.
 }
 
 function startPlayback() {
@@ -655,7 +651,6 @@ function startPlayback() {
   document.getElementById('video-placeholder').style.display = 'none';
   document.getElementById('player-iframe').style.display = 'block';
   
-  // Find which source is active
   let activeIdx = 0;
   document.querySelectorAll('.source-btn:not(.trailer-btn)').forEach((btn, idx) => {
     if(btn.classList.contains('active')) activeIdx = idx;
@@ -695,7 +690,6 @@ function loadCurrentSource(sourceIdx = 0) {
   
   iframe.src = isMovie ? src.movie(currentItem.id) : src.tv(currentItem.id, s, e);
   
-  // ONLY NOW DO WE SAVE TO HISTORY
   if(!db.history.includes(currentItem.id)) db.history.push(currentItem.id);
   if(!isMovie) db.resume[currentItem.id] = { item: currentItem, s, e, time: Date.now() };
   else db.resume[currentItem.id] = { item: currentItem, time: Date.now() };
