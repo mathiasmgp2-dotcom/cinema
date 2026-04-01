@@ -202,7 +202,7 @@
 <div id="app">
   <header>
     <div class="app-logo" style="margin-bottom:0;">MathFlix</div>
-    <form class="search-wrap" id="desktop-search" onsubmit="handleSearchSubmit(event)">
+    <form class="search-wrap" id="desktop-search" action="javascript:void(0);">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
       <input type="search" id="search-input" placeholder="Search..." autocomplete="off">
       <button type="button" class="close-search" onclick="closeMobileSearch()">Cancel</button>
@@ -283,6 +283,7 @@ let currentSearch = '';
 let isLoading = false;
 let currentItem = null; 
 let currentSeasons = []; 
+let searchTimeout = null;
 
 const SOURCES = [
   { name: 'VSEmbed', movie: id => `https://vsembed.ru/embed/movie?tmdb=${id}`, tv: (id,s,e) => `https://vsembed.ru/embed/tv?tmdb=${id}&season=${s}&episode=${e}` },
@@ -306,44 +307,67 @@ function checkPass() {
 
 document.getElementById('gate-pass').addEventListener('keydown', e => { if (e.key === 'Enter') checkPass(); });
 
+// Bulletproof Fetch request
 async function tmdb(path, params = {}) {
-  const q = newSearchParams({ api_key: cfg.tmdbKey, ...params });
-  try { return await (await fetch(`${TMDB}${path}?${q}`)).json(); } catch(e) { return null; }
-}
-function newSearchParams(obj) {
-  let q = new URLSearchParams();
-  for (let key in obj) { if(obj[key]) q.append(key, obj[key]); }
-  return q;
+  params.api_key = cfg.tmdbKey;
+  params.language = 'en-US';
+  const q = new URLSearchParams(params).toString();
+  try {
+    const res = await fetch(`${TMDB}${path}?${q}`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch(e) { return null; }
 }
 
-// ─── MOBILE SEARCH TOGGLE & SUBMIT ──────────────────────────────────────────
+// ─── MOBILE SEARCH TOGGLE & EVENT LISTENERS ─────────────────────────────────
+const searchForm = document.getElementById('desktop-search');
+const searchInput = document.getElementById('search-input');
+
 function openMobileSearch() {
-  const wrap = document.getElementById('desktop-search');
-  wrap.classList.add('mobile-active');
-  document.getElementById('search-input').focus();
+  searchForm.classList.add('mobile-active');
+  searchInput.focus();
 }
 
 function closeMobileSearch() {
-  const wrap = document.getElementById('desktop-search');
-  wrap.classList.remove('mobile-active');
-  
-  const input = document.getElementById('search-input');
-  if (input.value !== '') {
-    input.value = '';
+  searchForm.classList.remove('mobile-active');
+  if (searchInput.value !== '') {
+    searchInput.value = '';
     currentSearch = '';
     reloadFeed();
   }
 }
 
-// This function fires when the user hits "Enter" or "Search" on their keyboard
-function handleSearchSubmit(e) {
-  e.preventDefault(); // Prevents the page from refreshing
-  const input = document.getElementById('search-input');
+// 1. Force switch out of Library tab if user clicks search
+searchInput.addEventListener('focus', () => {
+  if (currentTab === 'library') {
+    switchTab('movies'); 
+  }
+});
+
+// 2. The core execute search function
+function executeSearch(force = false) {
   clearTimeout(searchTimeout);
-  currentSearch = input.value.trim();
-  reloadFeed();
-  input.blur(); // Instantly hides the mobile keyboard
+  const val = searchInput.value.trim();
+  if (!force && val === currentSearch) return; // Ignore if text didn't change
+  currentSearch = val;
+  currentPage = 1;
+  document.getElementById('grid').innerHTML = '';
+  loadFeed();
 }
+
+// 3. Listen for typing (Live search after 800ms)
+searchInput.addEventListener('input', () => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => { executeSearch(false); }, 800);
+});
+
+// 4. Listen for PC "Enter" or iPhone "Search" button
+searchForm.addEventListener('submit', (e) => {
+  e.preventDefault(); // Stop page reload
+  executeSearch(true); // Force search immediately
+  searchInput.blur();  // Hide the keyboard
+});
+
 
 // ─── UI CONTROLS ────────────────────────────────────────────────────────────
 async function loadGenres() {
@@ -395,7 +419,7 @@ function switchTab(tab) {
   document.getElementById('library-sections').style.display = tab === 'library' ? 'block' : 'none';
   
   document.getElementById('search-input').value = '';
-  closeMobileSearch();
+  searchForm.classList.remove('mobile-active');
   
   renderFilters();
   if(tab === 'library') loadLibrary();
@@ -624,13 +648,7 @@ function closePlayer() {
   else reloadFeed(); 
 }
 
-// ─── SEARCH EVENT LOGIC ─────────────────────────────────────────────────────
-document.getElementById('search-input').addEventListener('input', e => {
-  clearTimeout(searchTimeout);
-  currentSearch = e.target.value.trim();
-  searchTimeout = setTimeout(() => { reloadFeed(); }, 800);
-});
-
+// ─── SCROLL OBSERVER ────────────────────────────────────────────────────────
 const observer = new IntersectionObserver((entries) => {
   if (entries[0].isIntersecting && !isLoading && currentTab !== 'library') {
     currentPage++; loadFeed();
