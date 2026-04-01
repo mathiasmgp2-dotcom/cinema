@@ -323,7 +323,6 @@
     }
 
     .card:hover { transform: translateY(-4px); }
-
     .card:hover .card-overlay { opacity: 1; }
 
     .card-poster {
@@ -359,9 +358,7 @@
       font-size: 18px;
     }
 
-    .card-info {
-      padding: 12px 10px;
-    }
+    .card-info { padding: 12px 10px; }
 
     .card-title {
       font-family: 'Cormorant Garamond', serif;
@@ -411,9 +408,11 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 20px 32px;
+      padding: 16px 32px;
       border-bottom: 1px solid var(--border);
       flex-shrink: 0;
+      flex-wrap: wrap;
+      gap: 12px;
     }
 
     .player-title {
@@ -429,6 +428,68 @@
       font-family: 'DM Mono', monospace;
       margin-left: 12px;
     }
+
+    .player-header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* ─── SOURCE SWITCHER ─── */
+    .source-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .source-label {
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--dim);
+      margin-right: 4px;
+    }
+
+    .source-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--dim);
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      padding: 5px 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .source-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+    .source-btn.active {
+      border-color: var(--gold);
+      color: var(--gold);
+      background: rgba(201,168,76,0.08);
+    }
+
+    .source-btn.down {
+      border-color: var(--red);
+      color: #555;
+      cursor: not-allowed;
+      opacity: 0.5;
+      text-decoration: line-through;
+    }
+
+    .source-status {
+      font-size: 9px;
+      color: var(--dim);
+      letter-spacing: 0.1em;
+      font-style: italic;
+    }
+
+    .source-status.ok { color: #4caf50; }
+    .source-status.err { color: var(--red); }
 
     .btn-close {
       background: transparent;
@@ -451,6 +512,7 @@
       align-items: center;
       justify-content: center;
       padding: 24px;
+      position: relative;
     }
 
     #player-iframe {
@@ -461,14 +523,57 @@
       background: #000;
     }
 
-    /* TV Mode */
-    .tv-controls {
-      display: none;
-      padding: 16px 32px;
-      gap: 16px;
+    /* Loading overlay on iframe */
+    #iframe-loading {
+      position: absolute;
+      inset: 24px;
+      max-width: 1280px;
+      margin: auto;
+      aspect-ratio: 16/9;
+      background: #000;
+      display: flex;
+      flex-direction: column;
       align-items: center;
+      justify-content: center;
+      gap: 16px;
+      color: var(--dim);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    #iframe-loading.visible { opacity: 1; pointer-events: all; }
+
+    .iframe-spinner {
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--border);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* TV Mode */
+    .player-footer {
+      display: flex;
+      align-items: center;
+      gap: 0;
       border-top: 1px solid var(--border);
       flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .tv-controls {
+      display: none;
+      padding: 14px 32px;
+      gap: 16px;
+      align-items: center;
+      flex-shrink: 0;
+      border-right: 1px solid var(--border);
     }
 
     .tv-controls.active { display: flex; }
@@ -505,6 +610,16 @@
       padding: 8px 20px;
       cursor: pointer;
     }
+
+    .source-hint {
+      padding: 14px 24px;
+      font-size: 10px;
+      color: var(--dim);
+      letter-spacing: 0.05em;
+      line-height: 1.6;
+    }
+
+    .source-hint strong { color: var(--gold); }
 
     /* Tabs */
     .tabs {
@@ -579,6 +694,8 @@
       #search-input { width: 100%; }
       #search-input:focus { width: 100%; }
       .player-frame-wrap { padding: 8px; }
+      .player-header { padding: 12px 16px; }
+      .tv-controls { padding: 12px 16px; }
     }
   </style>
 </head>
@@ -622,17 +739,36 @@
 <div id="player-modal">
   <div class="player-header">
     <div class="player-title" id="player-label">—<small id="player-year"></small></div>
-    <button class="btn-close" onclick="closePlayer()">✕ Close</button>
+    <div class="player-header-right">
+      <!-- SOURCE SWITCHER -->
+      <div class="source-bar" id="source-bar">
+        <span class="source-label">Source</span>
+        <!-- Buttons injected by JS -->
+      </div>
+      <button class="btn-close" onclick="closePlayer()">✕ Close</button>
+    </div>
   </div>
+
   <div class="player-frame-wrap">
-    <iframe id="player-iframe" allowfullscreen allow="autoplay; fullscreen"></iframe>
+    <div id="iframe-loading">
+      <div class="iframe-spinner"></div>
+      <span>Loading stream…</span>
+      <span style="font-size:9px;margin-top:4px;">If it stays blank, try another source →</span>
+    </div>
+    <iframe id="player-iframe" allowfullscreen allow="autoplay; fullscreen; encrypted-media; picture-in-picture"></iframe>
   </div>
-  <div class="tv-controls" id="tv-controls">
-    <label>Season</label>
-    <input type="number" id="tv-season" value="1" min="1" max="99" />
-    <label>Episode</label>
-    <input type="number" id="tv-ep" value="1" min="1" max="999" />
-    <button class="btn-go" onclick="loadEpisode()">Load Episode</button>
+
+  <div class="player-footer">
+    <div class="tv-controls" id="tv-controls">
+      <label>Season</label>
+      <input type="number" id="tv-season" value="1" min="1" max="99" />
+      <label>Episode</label>
+      <input type="number" id="tv-ep" value="1" min="1" max="999" />
+      <button class="btn-go" onclick="loadEpisode()">Load Episode</button>
+    </div>
+    <div class="source-hint">
+      <strong>Tip:</strong> If a source shows a blank screen or error, click another source button above. They all have different libraries — try a few!
+    </div>
   </div>
 </div>
 
@@ -656,8 +792,8 @@
     </div>
 
     <div class="tabs" id="tabs">
-      <button class="tab active" onclick="switchTab('movies')">Movies</button>
-      <button class="tab" onclick="switchTab('tv')">TV Series</button>
+      <button class="tab active" onclick="switchTab('movies', event)">Movies</button>
+      <button class="tab" onclick="switchTab('tv', event)">TV Series</button>
     </div>
 
     <div id="content-area">
@@ -669,8 +805,8 @@
 <script>
 // ─── CONFIG & STATE ─────────────────────────────────────────────────────────
 const DEFAULTS = {
-  password: 'mgp',   // ← CHANGE THIS or set via Config panel
-  tmdbKey: 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJlZDZkNDFmOWViOGM3MzZhMjU2NTE5MTFkNmJjNzIyYSIsIm5iZiI6MTc3NTA1MjI1NS41MTAwMDAyLCJzdWIiOiI2OWNkMjVkZmJlZTYzZTBjMTM4N2E4MTYiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.wKj5jTsq2KDD-TKVYVDQMlAHRzbYN-6GkNtAZJmMCw8',
+  password: 'cinevault',   // ← Change this to your own password
+  tmdbKey: '',             // ← Or paste your TMDB key here between the quotes
 };
 
 let cfg = {
@@ -678,9 +814,102 @@ let cfg = {
   tmdbKey:  localStorage.getItem('cv_tmdb') || DEFAULTS.tmdbKey,
 };
 
-let currentTab = 'movies';
-let currentMovieId = null;
-let searchTimeout = null;
+let currentTab     = 'movies';
+let currentId      = null;
+let currentType    = 'movies';
+let searchTimeout  = null;
+let activeSource   = 0;
+
+// ─── SOURCES ─────────────────────────────────────────────────────────────────
+// Each source has a movie URL builder and a TV URL builder.
+// {id} = TMDB id, {s} = season, {e} = episode
+const SOURCES = [
+  {
+    name: 'VidKing',
+    movie: id        => `https://www.vidking.net/embed/movie/${id}`,
+    tv:   (id, s, e) => `https://www.vidking.net/embed/tv/${id}/${s}/${e}`,
+  },
+  {
+    name: 'VidSrc',
+    movie: id        => `https://vidsrc.me/embed/movie?tmdb=${id}`,
+    tv:   (id, s, e) => `https://vidsrc.me/embed/tv?tmdb=${id}&season=${s}&episode=${e}`,
+  },
+  {
+    name: 'VidSrc.to',
+    movie: id        => `https://vidsrc.to/embed/movie/${id}`,
+    tv:   (id, s, e) => `https://vidsrc.to/embed/tv/${id}/${s}/${e}`,
+  },
+  {
+    name: 'VidSrc.xyz',
+    movie: id        => `https://vidsrc.xyz/embed/movie?tmdb=${id}`,
+    tv:   (id, s, e) => `https://vidsrc.xyz/embed/tv?tmdb=${id}&season=${s}&episode=${e}`,
+  },
+  {
+    name: 'SuperEmbed',
+    movie: id        => `https://multiembed.mov/directstream.php?video_id=${id}&tmdb=1`,
+    tv:   (id, s, e) => `https://multiembed.mov/directstream.php?video_id=${id}&tmdb=1&s=${s}&e=${e}`,
+  },
+  {
+    name: 'EmbedSu',
+    movie: id        => `https://embed.su/embed/movie/${id}`,
+    tv:   (id, s, e) => `https://embed.su/embed/tv/${id}/${s}/${e}`,
+  },
+  {
+    name: '2Embed',
+    movie: id        => `https://www.2embed.cc/embed/${id}`,
+    tv:   (id, s, e) => `https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}`,
+  },
+];
+
+// ─── BUILD SOURCE BUTTONS ─────────────────────────────────────────────────────
+function buildSourceBar() {
+  const bar = document.getElementById('source-bar');
+  // Keep the label span, rebuild buttons
+  const label = bar.querySelector('.source-label');
+  bar.innerHTML = '';
+  bar.appendChild(label);
+
+  SOURCES.forEach((src, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'source-btn' + (i === activeSource ? ' active' : '');
+    btn.textContent = src.name;
+    btn.title = `Try ${src.name}`;
+    btn.onclick = () => switchSource(i);
+    bar.appendChild(btn);
+  });
+}
+
+function switchSource(index) {
+  activeSource = index;
+  buildSourceBar();
+  loadCurrentSource();
+}
+
+function loadCurrentSource() {
+  const iframe = document.getElementById('player-iframe');
+  const loading = document.getElementById('iframe-loading');
+  const s = document.getElementById('tv-season').value || 1;
+  const e = document.getElementById('tv-ep').value || 1;
+  const src = SOURCES[activeSource];
+
+  loading.classList.add('visible');
+  iframe.src = '';
+
+  setTimeout(() => {
+    if (currentType === 'movies') {
+      iframe.src = src.movie(currentId);
+    } else {
+      iframe.src = src.tv(currentId, s, e);
+    }
+  }, 100);
+
+  iframe.onload = () => {
+    loading.classList.remove('visible');
+  };
+
+  // Fallback: hide loader after 6s regardless
+  setTimeout(() => loading.classList.remove('visible'), 6000);
+}
 
 // ─── AUTH ───────────────────────────────────────────────────────────────────
 function checkPass() {
@@ -707,9 +936,9 @@ function openSetup() {
 }
 
 function saveConfig() {
-  const newKey = document.getElementById('cfg-tmdb').value.trim();
+  const newKey  = document.getElementById('cfg-tmdb').value.trim();
   const newPass = document.getElementById('cfg-pass').value;
-  if (newKey) { cfg.tmdbKey = newKey; localStorage.setItem('cv_tmdb', newKey); }
+  if (newKey)  { cfg.tmdbKey  = newKey;  localStorage.setItem('cv_tmdb', newKey); }
   if (newPass) { cfg.password = newPass; localStorage.setItem('cv_pass', newPass); }
   document.getElementById('setup-modal').style.display = 'none';
   init();
@@ -739,10 +968,10 @@ async function init() {
 }
 
 // ─── TABS ────────────────────────────────────────────────────────────────────
-function switchTab(tab) {
+function switchTab(tab, event) {
   currentTab = tab;
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  event.target.classList.add('active');
+  if (event && event.target) event.target.classList.add('active');
   document.getElementById('search-input').value = '';
   loadTab(tab);
 }
@@ -750,11 +979,9 @@ function switchTab(tab) {
 async function loadTab(tab) {
   if (!cfg.tmdbKey) return;
   showLoading();
-  const type = tab === 'movies' ? '/movie' : '/tv';
   const endpoint = tab === 'movies' ? '/movie/popular' : '/tv/popular';
   const data = await tmdb(endpoint, { page: 1 });
   if (!data) return showError();
-
   const label = tab === 'movies' ? 'Popular Movies' : 'Popular Series';
   renderCards(data.results, tab, label);
 }
@@ -813,40 +1040,41 @@ function renderCards(items, tab, label) {
 
 // ─── PLAYER ──────────────────────────────────────────────────────────────────
 function openPlayer(id, tab, title, year) {
-  currentMovieId = id;
-  document.getElementById('player-label').textContent = title;
-  document.getElementById('player-year').textContent = year ? ` — ${year}` : '';
+  currentId   = id;
+  currentType = tab;
+  activeSource = 0; // always start with VidKing
 
-  const modal = document.getElementById('player-modal');
+  document.getElementById('player-label').textContent = title;
+  document.getElementById('player-year').textContent  = year ? ` — ${year}` : '';
+
+  const modal  = document.getElementById('player-modal');
   const tvCtrl = document.getElementById('tv-controls');
-  const iframe = document.getElementById('player-iframe');
 
   modal.style.display = 'flex';
   document.body.style.overflow = 'hidden';
 
-  if (tab === 'movies') {
-    tvCtrl.classList.remove('active');
-    iframe.src = `https://www.vidking.net/embed/movie/${id}`;
-  } else {
+  if (tab !== 'movies') {
     tvCtrl.classList.add('active');
     document.getElementById('tv-season').value = 1;
-    document.getElementById('tv-ep').value = 1;
-    iframe.src = `https://www.vidking.net/embed/tv/${id}/1/1`;
+    document.getElementById('tv-ep').value     = 1;
+  } else {
+    tvCtrl.classList.remove('active');
   }
+
+  buildSourceBar();
+  loadCurrentSource();
 }
 
 function loadEpisode() {
-  const s = document.getElementById('tv-season').value;
-  const e = document.getElementById('tv-ep').value;
-  document.getElementById('player-iframe').src =
-    `https://www.vidking.net/embed/tv/${currentMovieId}/${s}/${e}`;
+  loadCurrentSource();
 }
 
 function closePlayer() {
   document.getElementById('player-modal').style.display = 'none';
   document.getElementById('player-iframe').src = '';
+  document.getElementById('iframe-loading').classList.remove('visible');
   document.body.style.overflow = '';
-  currentMovieId = null;
+  currentId = null;
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -856,7 +1084,7 @@ function showLoading() {
 
 function showError() {
   document.getElementById('content-area').innerHTML =
-    '<div class="loading">Failed to load — check your API key in Config</div>';
+    '<div class="loading">Failed to load — check your API key in ⚙ Config</div>';
 }
 
 // Close modals on backdrop click
