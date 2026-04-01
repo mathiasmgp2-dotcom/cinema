@@ -13,7 +13,7 @@
       --text: #ffffff;
       --text-muted: #8a8d98;
       --border: #232630;
-      --blue: #e50914; /* Switched to a Netflix Red for MathFlix */
+      --blue: #e50914; 
       --blue-hover: #b20710;
       --red: #ef4444;
       --overlay: rgba(0,0,0,0.85);
@@ -124,8 +124,8 @@
     .source-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
     .source-btn { background: var(--input-bg); border: 1px solid var(--border); color: var(--text); padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; transition: border-color 0.2s; }
     .source-btn:hover { border-color: var(--text-muted); }
-    .source-btn.active { background: var(--blue); border-color: var(--blue); }
-    .trailer-btn { background: var(--red); border-color: var(--red); margin-left: auto; }
+    .source-btn.active { background: var(--blue); border-color: var(--blue); color: white;}
+    .trailer-btn { background: var(--red); border-color: var(--red); margin-left: auto; color: white;}
     .trailer-btn:hover { background: #dc2626; border-color: #dc2626; }
 
     .tv-controls { display: none; gap: 12px; align-items: flex-end; padding-top: 10px; margin-bottom: 20px; }
@@ -277,7 +277,7 @@ function saveDB() {
 // App State
 let currentTab = 'movies';
 let activeGenre = '';
-let sortBy = 'trending'; // 'trending' or 'top_rated'
+let sortBy = 'trending'; 
 let currentPage = 1;
 let currentSearch = '';
 let isLoading = false;
@@ -307,8 +307,13 @@ function checkPass() {
 document.getElementById('gate-pass').addEventListener('keydown', e => { if (e.key === 'Enter') checkPass(); });
 
 async function tmdb(path, params = {}) {
-  const q = new URLSearchParams({ api_key: cfg.tmdbKey, ...params });
+  const q = newSearchParams({ api_key: cfg.tmdbKey, ...params });
   try { return await (await fetch(`${TMDB}${path}?${q}`)).json(); } catch(e) { return null; }
+}
+function newSearchParams(obj) {
+  let q = new URLSearchParams();
+  for (let key in obj) { if(obj[key]) q.append(key, obj[key]); }
+  return q;
 }
 
 // ─── MOBILE SEARCH TOGGLE ───────────────────────────────────────────────────
@@ -325,8 +330,8 @@ function closeMobileSearch() {
   const input = document.getElementById('search-input');
   if (input.value !== '') {
     input.value = '';
-    searchQuery = '';
-    loadTab(currentTab, false);
+    currentSearch = '';
+    reloadFeed();
   }
 }
 
@@ -360,7 +365,7 @@ function setGenre(id) { activeGenre = id; reloadFeed(); }
 function setSort(type) { sortBy = type; reloadFeed(); }
 
 function switchTab(tab) {
-  currentTab = tab; activeGenre = ''; sortBy = 'trending';
+  currentTab = tab; activeGenre = ''; sortBy = 'trending'; currentSearch = '';
   
   // Highlight correct top tab
   document.querySelectorAll('.profile-tabs .tab').forEach(t => t.classList.remove('active'));
@@ -388,7 +393,10 @@ function switchTab(tab) {
 }
 
 function reloadFeed() {
-  currentPage = 1; currentSearch = ''; document.getElementById('grid').innerHTML = ''; loadFeed();
+  // We no longer clear currentSearch here! It's handled by the inputs/tabs.
+  currentPage = 1; 
+  document.getElementById('grid').innerHTML = ''; 
+  loadFeed();
 }
 
 // ─── DATA FETCHING ──────────────────────────────────────────────────────────
@@ -401,13 +409,14 @@ async function loadFeed() {
   if(sortBy === 'top_rated') endpoint = `/${currentTab === 'movies' ? 'movie' : 'tv'}/top_rated`;
   
   let params = { page: currentPage };
-  if(activeGenre) params.with_genres = activeGenre;
+  if(activeGenre && !currentSearch) params.with_genres = activeGenre;
   
   const data = await tmdb(currentSearch ? `/search/${currentTab === 'movies' ? 'movie' : 'tv'}` : endpoint, 
     currentSearch ? { query: currentSearch, page: currentPage } : params);
   
   if(data && data.results) {
     if(currentPage === 1 && !currentSearch && data.results.length > 0) renderHero(data.results[0]);
+    if(currentPage === 1 && currentSearch) document.getElementById('hero').style.display = 'none'; // hide hero when searching
     renderCards(data.results, 'grid');
   }
   isLoading = false;
@@ -606,11 +615,11 @@ function closePlayer() {
   else reloadFeed(); 
 }
 
-// ─── SEARCH & SCROLL ────────────────────────────────────────────────────────
+// ─── SEARCH EVENT LOGIC ─────────────────────────────────────────────────────
 document.getElementById('search-input').addEventListener('input', e => {
   clearTimeout(searchTimeout);
-  if(!e.target.value) reloadFeed();
-  else searchTimeout = setTimeout(() => { currentSearch = e.target.value; reloadFeed(); }, 500);
+  currentSearch = e.target.value.trim();
+  searchTimeout = setTimeout(() => { reloadFeed(); }, 500);
 });
 
 const observer = new IntersectionObserver((entries) => {
