@@ -33,23 +33,10 @@
       color: var(--text);
       -webkit-font-smoothing: antialiased;
       overflow-y: scroll;
-      /* Accounts for the bottom nav bar + iOS home indicator */
       padding-bottom: calc(70px + env(safe-area-inset-bottom)); 
     }
 
     button { font-family: inherit; cursor: pointer; }
-    
-    /* ─── GATE ─── */
-    #gate {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      min-height: 100vh; padding: 20px; position: fixed; inset: 0; z-index: 9999; background: var(--bg);
-    }
-    .gate-box { background: var(--input-bg); border-radius: 16px; padding: 40px; width: 100%; max-width: 350px; text-align: center; }
-    .app-logo { font-size: 32px; font-weight: 900; letter-spacing: -1px; margin-bottom: 20px; color: var(--blue); text-transform: uppercase;}
-    .ig-input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px; font-size: 16px; margin-bottom: 15px; color: var(--text); outline: none; }
-    .fake-pass { -webkit-text-security: disc; }
-    .ig-btn { width: 100%; background: var(--blue); color: white; border: none; border-radius: 8px; padding: 14px; font-weight: 600; font-size: 16px; }
-    #app { display: none; }
 
     /* ─── HEADER & TABS (iOS Safe Area Optimized) ─── */
     header {
@@ -177,15 +164,6 @@
 </head>
 <body>
 
-<div id="gate">
-  <div class="gate-box">
-    <div class="app-logo">MathFlix</div>
-    <input type="text" id="gate-pass" class="ig-input fake-pass" placeholder="Password" autocomplete="off" spellcheck="false">
-    <button class="ig-btn" onclick="checkPass()">Unlock</button>
-    <div id="gate-error" class="gate-error"></div>
-  </div>
-</div>
-
 <div id="player-modal">
   <div class="post-container">
     <div class="post-header">
@@ -224,7 +202,7 @@
 
 <div id="app">
   <header>
-    <div class="app-logo" style="margin-bottom:0;">MathFlix</div>
+    <div class="app-logo" style="margin-bottom:0; font-size:20px; font-weight:900; letter-spacing:-1px; color:var(--blue); text-transform:uppercase;">MathFlix</div>
     <form class="search-wrap" id="desktop-search" action="." onsubmit="return handleSearchSubmit(event)">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
       <input type="search" id="search-input" placeholder="Search..." autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="search">
@@ -246,8 +224,7 @@
     </div>
   </div>
 
-  <div class="filter-bar" id="filters">
-    </div>
+  <div class="filter-bar" id="filters"></div>
 
   <main>
     <div id="library-sections" style="display:none;">
@@ -279,7 +256,7 @@
 
 <script>
 // ─── CONFIG & LOCAL STORAGE ENGINE ──────────────────────────────────────────
-const cfg = { password: 'mgp', tmdbKey: 'ed6d41f9eb8c736a25651911d6bc722a' };
+const cfg = { tmdbKey: 'ed6d41f9eb8c736a25651911d6bc722a' };
 const TMDB = 'https://api.themoviedb.org/3';
 const IMG = 'https://image.tmdb.org/t/p/w500';
 const IMG_BG = 'https://image.tmdb.org/t/p/w1280';
@@ -309,8 +286,7 @@ let currentSeasons = [];
 let searchTimeout = null;
 let isPlaying = false; 
 
-// ─── HIGH QUALITY STREAMING SOURCES ─────────────────────────────────────────
-// Cleaned up the sources to provide the most reliable ones with the fewest popups.
+// ─── STREAMING SOURCES ───────────────────────────────────────────────────────
 const SOURCES = [
   { name: 'VidLink', movie: id => `https://vidlink.pro/movie/${id}?primaryColor=e50914&autoplay=false`, tv: (id,s,e) => `https://vidlink.pro/tv/${id}/${s}/${e}?primaryColor=e50914&autoplay=false` },
   { name: 'SuperEmbed', movie: id => `https://multiembed.mov/directstream.php?video_id=${id}&tmdb=1`, tv: (id,s,e) => `https://multiembed.mov/directstream.php?video_id=${id}&tmdb=1&s=${s}&e=${e}` },
@@ -319,19 +295,11 @@ const SOURCES = [
   { name: 'VidSrc.cc', movie: id => `https://vidsrc.cc/v2/embed/movie/${id}`, tv: (id,s,e) => `https://vidsrc.cc/v2/embed/tv/${id}/${s}/${e}` }
 ];
 
-// ─── CORE ───────────────────────────────────────────────────────────────────
-function checkPass() {
-  if (document.getElementById('gate-pass').value === cfg.password) {
-    document.getElementById('gate').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    loadGenres();
-    switchTab('movies');
-  } else {
-    document.getElementById('gate-error').textContent = 'Incorrect password.';
-  }
+// ─── INIT ────────────────────────────────────────────────────────────────────
+async function init() {
+  await loadGenres();
+  switchTab('movies');
 }
-
-document.getElementById('gate-pass').addEventListener('keydown', e => { if (e.key === 'Enter') checkPass(); });
 
 async function tmdb(path, params = {}) {
   params.api_key = cfg.tmdbKey;
@@ -713,6 +681,8 @@ const observer = new IntersectionObserver((entries) => {
 }, { rootMargin: '200px' });
 observer.observe(document.getElementById('sentinel'));
 
+// ─── AUTO-INIT ───────────────────────────────────────────────────────────────
+init();
 </script>
 </body>
 </html>
